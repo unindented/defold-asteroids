@@ -1,5 +1,8 @@
 /.internal
 /build
+/dist
+/node_modules
+/tools
 .externalToolBuilders
 .DS_Store
 Thumbs.db

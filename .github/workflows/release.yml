@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Cache tools
+        id: cache-tools
+        uses: actions/cache@v3
+        env:
+          cache-name: cache-tools
+        with:
+          path: tools
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('Makefile') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.cache-name }}-
+            ${{ runner.os }}-
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: microsoft
+          java-version: "11"
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install misc tools
+        run: |
+          brew install coreutils graphicsmagick imagemagick wine-stable
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: make release
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: artifacts
+          path: |
+            dist/**/*.dmg
+            dist/**/*.zip

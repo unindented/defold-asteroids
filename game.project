@@ -1,6 +1,8 @@
 [project]
-title = defold-asteroids
-version = 1.0
+title = Asteroids
+version = 0.0.0-development
+publisher = Daniel Perez Alvarez
+developer = Daniel Perez Alvarez
 
 [bootstrap]
 main_collection = /main/main.collectionc
@@ -18,4 +20,23 @@ scale = 0.02
 
 [script]
 shared_state = 1
+
+[ios]
+bundle_identifier = org.unindented.asteroids
+bundle_version = 0.0.0-development
+
+[android]
+package = org.unindented.asteroids
+version_code = 2100000000
+
+[osx]
+app_icon = /assets/macos/icon.icns
+bundle_identifier = org.unindented.asteroids
+bundle_version = 0.0.0-development
+
+[windows]
+app_icon = /assets/windows/icon.ico
+
+[html5]
+cssfile = /builtins/manifests/web/dark_theme.css
 
