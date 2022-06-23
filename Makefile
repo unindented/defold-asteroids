@@ -16,6 +16,9 @@ RCEDIT_PATH := $(TOOLS_DIR)/rcedit.exe
 RCEDIT_VERSION := 1.1.1
 RCEDIT_SHA256 := 02e8e8c5d430d8b768980f517b62d7792d690982b9ba0f7e04163cbc1a6e7915
 
+BUTLER_PATH := $(TOOLS_DIR)/butler/butler
+BUTLER_VERSION := 15.21.0
+BUTLER_SHA256 := af8fc2e7c4d4a2e2cb9765c343a88ecafc0dccc2257ecf16f7601fcd73a148ec
 
 # Outputs
 
@@ -61,6 +64,33 @@ all:
 .PHONY: version
 version:
 	perl -i -pe 's/0.0.0-development/$(APP_VERSION)/g;' -pe 's/2100000000/$(subst .,,$(APP_VERSION))/g;' game.project
+
+.PHONY: publish
+publish:
+	$(MAKE) publish-itchio
+
+.PHONY: publish-itchio
+publish-itchio:
+	$(MAKE) publish-itchio-windows
+	$(MAKE) publish-itchio-macos
+	$(MAKE) publish-itchio-linux
+	$(MAKE) publish-itchio-web
+
+.PHONY: publish-itchio-windows
+publish-itchio-windows: $(WINDOWS_DIST_ZIP) $(BUTLER_PATH)
+	$(BUTLER_PATH) push $< $(BUTLER_PROJECT):windows --userversion $(APP_VERSION)
+
+.PHONY: publish-itchio-macos
+publish-itchio-macos: $(MACOS_DIST_APP) $(BUTLER_PATH)
+	$(BUTLER_PATH) push $< $(BUTLER_PROJECT):macos --userversion $(APP_VERSION)
+
+.PHONY: publish-itchio-linux
+publish-itchio-linux: $(LINUX_DIST_ZIP) $(BUTLER_PATH)
+	$(BUTLER_PATH) push $< $(BUTLER_PROJECT):linux --userversion $(APP_VERSION)
+
+.PHONY: publish-itchio-web
+publish-itchio-web: $(WEB_DIST_ZIP) $(BUTLER_PATH)
+	$(BUTLER_PATH) push $< $(BUTLER_PROJECT):web --userversion $(APP_VERSION)
 
 common: $(COMMON_DIST_CHANGELOG)
 windows: $(WINDOWS_DIST_ZIP) $(WINDOWS_DIST_APP)
@@ -112,3 +142,11 @@ $(RCEDIT_PATH):
 	mkdir -p `dirname $(RCEDIT_PATH)`
 	mv /tmp/rcedit.exe $(RCEDIT_PATH)
 	wine64 $(RCEDIT_PATH) --help
+
+$(BUTLER_PATH):
+	curl -L -o /tmp/butler.zip https://broth.itch.ovh/butler/darwin-amd64/$(BUTLER_VERSION)/archive/default
+	echo "$(BUTLER_SHA256) /tmp/butler.zip" | sha256sum --check
+	mkdir -p `dirname $(BUTLER_PATH)`
+	unzip /tmp/butler.zip -d `dirname $(BUTLER_PATH)`
+	rm /tmp/butler.zip
+	$(BUTLER_PATH) --version

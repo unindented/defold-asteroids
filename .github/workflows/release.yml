@@ -50,6 +50,8 @@ jobs:
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+          BUTLER_PROJECT: ${{ secrets.BUTLER_PROJECT }}
         run: make release
 
       - name: Upload artifacts

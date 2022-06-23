@@ -24,7 +24,8 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "make all APP_VERSION=${nextRelease.version}"
+        "prepareCmd": "make all APP_VERSION=${nextRelease.version}",
+        "publishCmd": "make publish APP_VERSION=${nextRelease.version}"
       }
     ],
     [
