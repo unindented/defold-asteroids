@@ -2,9 +2,17 @@ APP_NAME := Asteroids
 # This is provided by `semantic-release`
 # APP_VERSION :=
 
+ASSETS_DIR := assets
 BUILD_DIR := build
 DIST_DIR := dist
 TOOLS_DIR := tools
+
+STEAM_ASSETS_DIR := $(ASSETS_DIR)/steam
+
+STEAM_HOME := $(HOME)/Library/Application\ Support/Steam
+STEAM_CONFIG_DIR := $(STEAM_HOME)/config
+STEAM_CONFIG_FILE := $(STEAM_HOME)/config/config.vdf
+STEAM_SSFN_FILE := $(STEAM_HOME)/$(STEAM_SSFN_NAME)
 
 # Tools
 
@@ -19,6 +27,9 @@ RCEDIT_SHA256 := 02e8e8c5d430d8b768980f517b62d7792d690982b9ba0f7e04163cbc1a6e791
 BUTLER_PATH := $(TOOLS_DIR)/butler/butler
 BUTLER_VERSION := 15.21.0
 BUTLER_SHA256 := af8fc2e7c4d4a2e2cb9765c343a88ecafc0dccc2257ecf16f7601fcd73a148ec
+
+STEAMCMD_PATH := $(TOOLS_DIR)/steamcmd/steamcmd
+STEAMCMD_SHA256 := 8ecc17c8988e5acadcc78e631c48490f76150f2dfaa6cf8d7b4b67b097bd753b
 
 # Outputs
 
@@ -68,6 +79,7 @@ version:
 .PHONY: publish
 publish:
 	$(MAKE) publish-itchio
+	$(MAKE) publish-steam
 
 .PHONY: publish-itchio
 publish-itchio:
@@ -91,6 +103,47 @@ publish-itchio-linux: $(LINUX_DIST_ZIP) $(BUTLER_PATH)
 .PHONY: publish-itchio-web
 publish-itchio-web: $(WEB_DIST_ZIP) $(BUTLER_PATH)
 	$(BUTLER_PATH) push $< $(BUTLER_PROJECT):web --userversion $(APP_VERSION)
+
+.PHONY: publish-steam
+publish-steam: $(STEAM_ASSETS_DIR)/app_build_$(STEAM_APP_ID).txt \
+		$(STEAM_ASSETS_DIR)/app_build_$(STEAM_APP_ID).vdf \
+		$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_COMMON_DEPOT_ID).vdf \
+		$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_WINDOWS_DEPOT_ID).vdf \
+		$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_MACOS_DEPOT_ID).vdf \
+		$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_LINUX_DEPOT_ID).vdf \
+		$(STEAM_CONFIG_FILE) \
+		$(STEAM_SSFN_FILE) \
+		$(STEAMCMD_PATH) \
+		$(WINDOWS_DIST_APP) $(MACOS_DIST_APP) $(LINUX_DIST_APP)
+	$(STEAMCMD_PATH) +runscript "../../$<"
+
+$(STEAM_ASSETS_DIR)/app_build_$(STEAM_APP_ID).txt: $(STEAM_ASSETS_DIR)/app_build_1000.txt
+	cat $< | envsubst > $@
+
+$(STEAM_ASSETS_DIR)/app_build_$(STEAM_APP_ID).vdf: $(STEAM_ASSETS_DIR)/app_build_1000.vdf
+	cat $< | envsubst > $@
+
+$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_COMMON_DEPOT_ID).vdf: $(STEAM_ASSETS_DIR)/depot_build_1001.vdf
+	cat $< | envsubst > $@
+
+$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_WINDOWS_DEPOT_ID).vdf: $(STEAM_ASSETS_DIR)/depot_build_1002.vdf
+	cat $< | envsubst > $@
+
+$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_MACOS_DEPOT_ID).vdf: $(STEAM_ASSETS_DIR)/depot_build_1003.vdf
+	cat $< | envsubst > $@
+
+$(STEAM_ASSETS_DIR)/depot_build_$(STEAM_LINUX_DEPOT_ID).vdf: $(STEAM_ASSETS_DIR)/depot_build_1004.vdf
+	cat $< | envsubst > $@
+
+$(STEAM_CONFIG_FILE):
+	mkdir -p $(STEAM_CONFIG_DIR)
+	echo "$(STEAM_CONFIG_CONTENTS)" | base64 -d > "$@"
+	chmod 777 "$@"
+
+$(STEAM_SSFN_FILE):
+	mkdir -p $(STEAM_CONFIG_DIR)
+	echo "$(STEAM_SSFN_CONTENTS)" | base64 -d > "$@"
+	chmod 777 "$@"
 
 common: $(COMMON_DIST_CHANGELOG)
 windows: $(WINDOWS_DIST_ZIP) $(WINDOWS_DIST_APP)
@@ -150,3 +203,11 @@ $(BUTLER_PATH):
 	unzip /tmp/butler.zip -d `dirname $(BUTLER_PATH)`
 	rm /tmp/butler.zip
 	$(BUTLER_PATH) --version
+
+$(STEAMCMD_PATH):
+	curl -L -o /tmp/steamcmd.tar.gz https://steamcdn-a.akamaihd.net/client/installer/steamcmd_osx.tar.gz
+	echo "$(STEAMCMD_SHA256) /tmp/steamcmd.tar.gz" | sha256sum --check
+	mkdir -p `dirname $(STEAMCMD_PATH)`
+	tar zxvf /tmp/steamcmd.tar.gz -C `dirname $(STEAMCMD_PATH)`
+	rm /tmp/steamcmd.tar.gz
+	while ! $(STEAMCMD_PATH) +help +quit; do sleep 1; done

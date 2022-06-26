@@ -45,13 +45,23 @@ jobs:
 
       - name: Install misc tools
         run: |
-          brew install coreutils graphicsmagick imagemagick wine-stable
+          brew install coreutils gettext graphicsmagick imagemagick wine-stable
 
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           BUTLER_PROJECT: ${{ secrets.BUTLER_PROJECT }}
+          STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}
+          STEAM_PASSWORD: ${{ secrets.STEAM_PASSWORD }}
+          STEAM_APP_ID: ${{ secrets.STEAM_APP_ID }}
+          STEAM_COMMON_DEPOT_ID: ${{ secrets.STEAM_COMMON_DEPOT_ID }}
+          STEAM_WINDOWS_DEPOT_ID: ${{ secrets.STEAM_WINDOWS_DEPOT_ID }}
+          STEAM_MACOS_DEPOT_ID: ${{ secrets.STEAM_MACOS_DEPOT_ID }}
+          STEAM_LINUX_DEPOT_ID: ${{ secrets.STEAM_LINUX_DEPOT_ID }}
+          STEAM_SSFN_NAME: ${{ secrets.STEAM_SSFN_NAME }}
+          STEAM_SSFN_CONTENTS: ${{ secrets.STEAM_SSFN_CONTENTS }}
+          STEAM_CONFIG_CONTENTS: ${{ secrets.STEAM_CONFIG_CONTENTS }}
         run: make release
 
       - name: Upload artifacts

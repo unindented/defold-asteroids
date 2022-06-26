@@ -1,0 +1,11 @@
+"DepotBuild"
+{
+	"DepotID" "$STEAM_WINDOWS_DEPOT_ID"
+
+	"FileMapping"
+	{
+		"LocalPath" ".\windows\Asteroids\*"
+		"DepotPath" "."
+		"Recursive" "1"
+	}
+}
