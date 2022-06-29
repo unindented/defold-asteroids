@@ -9,4 +9,5 @@
 		"Recursive" "1"
 	}
 	"FileExclusion" ".\macos\*.dmg"
+	"FileExclusion" ".\macos\*.zip"
 }

@@ -47,9 +47,32 @@ jobs:
         run: |
           brew install coreutils gettext graphicsmagick imagemagick wine-stable
 
+      - name: Set up macOS certificates
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          MACOS_KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          echo "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
+          security create-keychain -p "$MACOS_KEYCHAIN_PASSWORD" release.keychain
+          security set-keychain-settings -lut 21600 release.keychain
+          security unlock-keychain -p "$MACOS_KEYCHAIN_PASSWORD" release.keychain
+          security import certificate.p12 -T /usr/bin/codesign -P "$MACOS_CERTIFICATE_PASSWORD" -k release.keychain
+          security set-key-partition-list -s -S apple-tool:,apple:,codesign: -k "$MACOS_KEYCHAIN_PASSWORD" release.keychain
+          security list-keychains -d user -s release.keychain login.keychain
+
+      - name: Set up macOS notarytool
+        env:
+          MACOS_TEAM_ID: ${{ secrets.MACOS_TEAM_ID }}
+          MACOS_APPLE_ID: ${{ secrets.MACOS_APPLE_ID }}
+          MACOS_NOTARYTOOL_PASSWORD: ${{ secrets.MACOS_NOTARYTOOL_PASSWORD }}
+        run: |
+          xcrun notarytool store-credentials "AC_PASSWORD" --team-id "$MACOS_TEAM_ID" --apple-id "$MACOS_APPLE_ID" --password "$MACOS_NOTARYTOOL_PASSWORD"
+
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MACOS_TEAM_ID: ${{ secrets.MACOS_TEAM_ID }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
           BUTLER_PROJECT: ${{ secrets.BUTLER_PROJECT }}
           STEAM_USERNAME: ${{ secrets.STEAM_USERNAME }}

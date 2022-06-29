@@ -7,6 +7,7 @@ BUILD_DIR := build
 DIST_DIR := dist
 TOOLS_DIR := tools
 
+MACOS_ASSETS_DIR := $(ASSETS_DIR)/macos
 STEAM_ASSETS_DIR := $(ASSETS_DIR)/steam
 
 STEAM_HOME := $(HOME)/Library/Application\ Support/Steam
@@ -39,9 +40,12 @@ WINDOWS_DIST_DIR := $(DIST_DIR)/windows
 WINDOWS_DIST_APP := $(WINDOWS_DIST_DIR)/$(APP_NAME)
 WINDOWS_DIST_ZIP := $(WINDOWS_DIST_DIR)/$(APP_NAME)-windows.zip
 
+MACOS_UNNOTARIZED_DIST_DIR := $(DIST_DIR)/macos-unnotarized
+MACOS_UNNOTARIZED_DIST_APP := $(MACOS_UNNOTARIZED_DIST_DIR)/$(APP_NAME).app
 MACOS_DIST_DIR := $(DIST_DIR)/macos
 MACOS_DIST_APP := $(MACOS_DIST_DIR)/$(APP_NAME).app
 MACOS_DIST_DMG := $(MACOS_DIST_DIR)/$(APP_NAME)-macos.dmg
+MACOS_DIST_ZIP := $(MACOS_DIST_DIR)/$(APP_NAME)-macos.zip
 
 LINUX_DIST_DIR := $(DIST_DIR)/linux
 LINUX_DIST_APP := $(LINUX_DIST_DIR)/$(APP_NAME)
@@ -147,7 +151,7 @@ $(STEAM_SSFN_FILE):
 
 common: $(COMMON_DIST_CHANGELOG)
 windows: $(WINDOWS_DIST_ZIP) $(WINDOWS_DIST_APP)
-macos: $(MACOS_DIST_DMG) $(MACOS_DIST_APP)
+macos: $(MACOS_DIST_ZIP) $(MACOS_DIST_DMG) $(MACOS_DIST_APP)
 linux: $(LINUX_DIST_ZIP) $(LINUX_DIST_APP)
 web: $(WEB_DIST_ZIP)
 
@@ -163,12 +167,30 @@ $(WINDOWS_DIST_APP): $(BOB_PATH) $(RCEDIT_PATH)
 	wine64 $(RCEDIT_PATH) $(WINDOWS_DIST_APP)/Asteroids.exe --set-file-version $(APP_VERSION)
 	wine64 $(RCEDIT_PATH) $(WINDOWS_DIST_APP)/Asteroids.exe --set-product-version $(APP_VERSION)
 
-$(MACOS_DIST_DMG): $(MACOS_DIST_APP)
-	-npx create-dmg --overwrite $< $(MACOS_DIST_DIR)
-	mv $(MACOS_DIST_DIR)/*.dmg $@
+$(MACOS_DIST_APP): $(MACOS_DIST_ZIP)
+	unzip -o $< -d `dirname $@`
+	xcrun stapler staple $@
+	xcrun stapler validate $@
+	spctl -v --assess --type exec $@
 
-$(MACOS_DIST_APP): $(BOB_PATH)
-	java -jar $(BOB_PATH) --archive --bundle-output $(MACOS_DIST_DIR) --platform x86_64-darwin resolve distclean build bundle
+$(MACOS_DIST_ZIP): $(MACOS_DIST_DMG)
+	hdiutil attach $<
+	/usr/bin/ditto -c -k -rsrc --sequesterRsrc --keepParent /Volumes/$(APP_NAME)/$(APP_NAME).app $@
+	hdiutil detach /Volumes/$(APP_NAME)
+
+$(MACOS_DIST_DMG): $(MACOS_UNNOTARIZED_DIST_APP)
+	mkdir -p $(MACOS_DIST_DIR)
+	npx create-dmg --overwrite $< $(MACOS_DIST_DIR)
+	mv $(MACOS_DIST_DIR)/*.dmg $@
+	xcrun notarytool submit $@ --keychain-profile "AC_PASSWORD" --wait
+	xcrun stapler staple $@
+	xcrun stapler validate $@
+	spctl -v --assess --type install $@
+
+$(MACOS_UNNOTARIZED_DIST_APP): $(BOB_PATH)
+	java -jar $(BOB_PATH) --archive --bundle-output $(MACOS_UNNOTARIZED_DIST_DIR) --platform x86_64-darwin resolve distclean build bundle
+	/usr/bin/codesign -vvv --force --deep --timestamp --options runtime --entitlements $(MACOS_ASSETS_DIR)/Entitlements.plist --sign $(MACOS_TEAM_ID) $@
+	/usr/bin/codesign -vvvv --deep $@
 
 $(LINUX_DIST_ZIP): $(LINUX_DIST_APP)
 	(cd $< && zip -rX ../$(notdir $@) .)
